@@ -1,0 +1,1 @@
+# NN-market-collapser
