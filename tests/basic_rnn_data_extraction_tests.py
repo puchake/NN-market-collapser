@@ -37,7 +37,7 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
         csv_file = open(RAW_DATA_FILE_PATH)
         csv_reader = csv.reader(csv_file)
         data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
-        CsvRow = namedtuple("CsvRow", data_extraction.CSV_ROW_FIELDS)
+        CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
         # Skip header row.
@@ -66,7 +66,7 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
         csv_reader = csv.reader(csv_file)
         data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
         companies_dict = pickle.load(open(COMPANIES_DICT_FILE_PATH, "rb"))
-        CsvRow = namedtuple("CsvRow", data_extraction.CSV_ROW_FIELDS)
+        CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
         # Skip header row.

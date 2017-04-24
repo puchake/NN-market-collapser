@@ -10,7 +10,7 @@ EXTRACTED_DATA_FILE_PATH = "../../data/extracted/wiki_prices_data.npy"
 COMPANIES_DICT_FILE_PATH = "../../data/extracted/companies_dict.pickle"
 
 # Array which defines DataRow tuple field names.
-CSV_ROW_FIELDS = [
+CSV_COLUMNS = [
     "ticker", "date", "open", "high", "low", "close",
     "volume", "ex_dividend", "split_ratio", "adj_open",
     "adj_high", "adj_low", "adj_close", "adj_volume"
@@ -20,14 +20,15 @@ CSV_ROW_FIELDS = [
 COLUMNS_TO_EXTRACT = [2, 3, 4, 5]
 
 
-def read_raw_data_file(raw_data_file_path, columns_to_extract):
+def read_raw_data_file(raw_data_file_path, csv_columns, columns_to_extract):
     """
-    Read raw csv data file rows and return them as list of named tuples. Also
+    Read raw csv data file and return its rows as list of named tuples. Also
     return dictionary of companies names.
     :param raw_data_file_path: path to file with unedited data
+    :param csv_columns: list of csv columns names
     :param columns_to_extract: indices of numeric csv columns which will be
-                               extracted along with first ticker column
-    :return: list of named tuples containing csv file data
+                               extracted along with the first ticker column
+    :return: list of named tuples containing data
     """
 
     csv_file = open(raw_data_file_path, "r")
@@ -40,10 +41,10 @@ def read_raw_data_file(raw_data_file_path, columns_to_extract):
     # Derive data row fields names from csv row fields names.
     data_row_fields = []
     for column_index in columns_to_extract:
-        data_row_fields.append(CSV_ROW_FIELDS[column_index])
+        data_row_fields.append(csv_columns[column_index])
 
     # Create named tuples which represent whole csv row and extracted data row.
-    CsvRow = namedtuple("CsvRow", CSV_ROW_FIELDS)
+    CsvRow = namedtuple("CsvRow", csv_columns)
     DataRow = namedtuple("DataRow", ["ticker"] + data_row_fields)
 
     data_rows = []
@@ -63,16 +64,15 @@ def read_raw_data_file(raw_data_file_path, columns_to_extract):
             companies_dict[csv_row.ticker] = companies_counter
             companies_counter += 1
 
-        # Append translated ticker name to data row data as float to enable
-        # straight data rows conversion to numpy array.
+        # Append translated ticker name to data row's data as float to enable
+        # straight conversion to numpy array.
         data_row_data.append(float(companies_dict[csv_row.ticker]))
 
         for column_index in columns_to_extract:
             if csv_row[column_index]:
 
-                # If this column's element in current row is not empty, assign
-                # its value converted to float to appropriate element in
-                # current data row.
+                # If this column's element in current row is not empty, append
+                # its value converted to float to data row's data.
                 data_row_data.append(float(csv_row[column_index]))
 
             else:
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     # Extract data.
     data_rows, companies_dict = read_raw_data_file(
-        RAW_DATA_FILE_PATH, COLUMNS_TO_EXTRACT
+        RAW_DATA_FILE_PATH, CSV_COLUMNS, COLUMNS_TO_EXTRACT
     )
     data_matrix = np.array(data_rows)
 
