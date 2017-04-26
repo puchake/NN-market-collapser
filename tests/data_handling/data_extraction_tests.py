@@ -1,16 +1,10 @@
-import unittest
-from collections import namedtuple
 import csv
 import pickle
+import unittest
+from collections import namedtuple
 import numpy as np
 
-import src.basic_nn.data_extraction as data_extraction
-
-
-# Input and output files paths relative to this tests file.
-RAW_DATA_FILE_PATH = "../data/raw/wiki_prices_data.csv"
-EXTRACTED_DATA_FILE_PATH = "../data/extracted/wiki_prices_data.npy"
-COMPANIES_DICT_FILE_PATH = "../data/extracted/companies_dict.pickle"
+import data_handling.data_extraction as data_extraction
 
 
 class BasicRnnDataExtractionTestCase(unittest.TestCase):
@@ -18,9 +12,9 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
     def test_extracted_wiki_prices_data_number_of_rows(self):
 
         # Arrange
-        csv_file = open(RAW_DATA_FILE_PATH)
+        csv_file = open(data_extraction.RAW_DATA_FILE_PATH)
         csv_reader = csv.reader(csv_file)
-        data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
+        data_matrix = np.load(data_extraction.EXTRACTED_DATA_FILE_PATH)
 
         # Skip header row.
         next(csv_reader)
@@ -34,9 +28,9 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
     def test_extracted_wiki_prices_data_numeric_values(self):
 
         # Arrange
-        csv_file = open(RAW_DATA_FILE_PATH)
+        csv_file = open(data_extraction.RAW_DATA_FILE_PATH)
         csv_reader = csv.reader(csv_file)
-        data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
+        data_matrix = np.load(data_extraction.EXTRACTED_DATA_FILE_PATH)
         CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
@@ -62,10 +56,12 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
     def test_extracted_wiki_prices_data_tickers_ids(self):
 
         # Arrange
-        csv_file = open(RAW_DATA_FILE_PATH)
+        csv_file = open(data_extraction.RAW_DATA_FILE_PATH)
         csv_reader = csv.reader(csv_file)
-        data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
-        companies_dict = pickle.load(open(COMPANIES_DICT_FILE_PATH, "rb"))
+        data_matrix = np.load(data_extraction.EXTRACTED_DATA_FILE_PATH)
+        companies_dict = pickle.load(
+            open(data_extraction.COMPANIES_DICT_FILE_PATH, "rb")
+        )
         CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
