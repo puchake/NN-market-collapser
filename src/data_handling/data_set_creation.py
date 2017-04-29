@@ -25,6 +25,11 @@ DECLINE = 0
 FIRST_NN = 0
 SECOND_NN = 1
 
+# Sizes of test, validation and train set parts in fractions of whole set.
+TRAIN = 0.70
+VALIDATION = 0.15
+TEST = 0.15
+
 
 def smooth_numeric_data(data_matrix, columns_to_smooth, smoothing_range):
     """
@@ -39,7 +44,6 @@ def smooth_numeric_data(data_matrix, columns_to_smooth, smoothing_range):
 
     # Copy matrix fragment, which will be smoothed and pad it with edge values.
     smoothed_data = data_matrix[:, columns_to_smooth]
-    print(smoothed_data)
     smoothed_data = np.pad(
         smoothed_data,
         ((smoothing_range // 2, smoothing_range // 2), (0, 0)),
@@ -105,7 +109,7 @@ def get_data_set_part(
         )
 
     split_company_matrix = split_data_matrix(
-        company_data_matrix, classification_column, columns_to_extract
+        company_data_matrix, window_length, columns_to_extract
     )
 
     # Find labels for each but last time window present in split matrix.
@@ -162,21 +166,53 @@ def create_data_set(
         if data_matrix[i, 0] == data_matrix[company_rows_indices[-1], 0]:
             company_rows_indices.append(i)
         else:
-            print(data_matrix[i, 0])
+            if len(company_rows_indices) >= 2 * window_length:
+                data_part, labels_part = get_data_set_part(
+                    data_matrix[company_rows_indices], destination,
+                    columns_to_extract, classification_column,
+                    window_length, smoothing_range
+                )
+                data_parts.append(data_part)
+                labels_parts.append(labels_part)
             company_rows_indices = [i]
-            data_part, labels_part = get_data_set_part(
-                data_matrix[company_rows_indices], destination,
-                columns_to_extract, classification_column,
-                window_length, smoothing_range
-            )
-            print(data_part.shape)
-            data_parts.append(data_part)
-            labels_parts.append(labels_part)
+
+    data = np.concatenate(data_parts)
+    labels = np.concatenate(labels_parts)
+
+    # Determine split points.
+    num_of_time_windows = data.shape[0]
+    indices = np.random.permutation(num_of_time_windows)
+    split_points = [
+        int(TRAIN * num_of_time_windows),
+        int((TRAIN + VALIDATION) * num_of_time_windows)
+    ]
+    train_indices, validation_indices, test_indices = np.split(
+        indices,
+        split_points
+    )
+
+    train_data = data[train_indices]
+    train_labels = labels[train_indices]
+    validation_data = data[validation_indices]
+    validation_labels = labels[validation_indices]
+    test_data = data[test_indices]
+    test_labels = labels[test_indices]
+
+    return train_data, train_labels, validation_data, \
+           validation_labels, test_data, test_labels
 
 
 if __name__ == "__main__":
     data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
-    create_data_set(
-        data_matrix, FIRST_NN, COLUMNS_TO_EXTRACT,
+    train_data, train_labels, validation_data, \
+    validation_labels, test_data, test_labels = create_data_set(
+        data_matrix, SECOND_NN, COLUMNS_TO_EXTRACT,
         CLASSIFICATION_COLUMN, WINDOW_LENGTH, SMOOTHING_RANGE
     )
+
+    np.save("../../data/set/first_nn/train_data", train_data)
+    np.save("../../data/set/first_nn/train_labels", train_labels)
+    np.save("../../data/set/first_nn/validation_data", validation_data)
+    np.save("../../data/set/first_nn/validation_labels", validation_labels)
+    np.save("../../data/set/first_nn/test_data", test_data)
+    np.save("../../data/set/first_nn/test_labels", test_labels)
