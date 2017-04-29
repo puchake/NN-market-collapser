@@ -43,13 +43,60 @@ class DataSetCreationTestCase(unittest.TestCase):
                            [61, 62, 63, 71, 72, 73, 81, 82, 83]]
 
         # Act
-        result = data_set_creation.split_data_matrix(
-            matrix, window_length, columns_to_extract
-        )
+        result = data_set_creation.split_data_matrix(matrix,
+                                                     window_length,
+                                                     columns_to_extract)
 
         # Assert
         self.assertTrue(np.alltrue(result == expected_matrix))
 
+    def test_get_data_set_part_destination_1_rising(self):
+
+        # Arrange
+        matrix = np.arange(100).reshape([10, 10])
+        columns_to_extract = [1, 2, 3]
+        window_length = 3
+        expected_matrix = [[4, 5, 6, 11, 12, 13, 21, 22, 23],
+                           [31, 32, 33, 41, 42, 43, 51, 52, 53]]
+        expected_labels = [[0.0, 1.0], [0.0, 1.0]]
+
+        # Act
+        matrix, labels = data_set_creation.get_data_set_part(
+            matrix,
+            data_set_creation.FIRST_NN,
+            columns_to_extract,
+            window_length,
+            3,
+            3
+        )
+
+        # Assert
+        self.assertTrue(np.alltrue(matrix == expected_matrix))
+        self.assertTrue(np.alltrue(labels == expected_labels))
+
+    def test_get_data_set_part_destination_2_rising(self):
+
+        # Arrange
+        matrix = np.arange(100).reshape([10, 10])
+        columns_to_extract = [1, 2, 3]
+        window_length = 3
+        expected_matrix = [[1, 2, 3, 11, 12, 13, 21, 22, 23],
+                           [31, 32, 33, 41, 42, 43, 51, 52, 53]]
+        expected_labels = [[0.0, 1.0], [0.0, 1.0]]
+
+        # Act
+        matrix, labels = data_set_creation.get_data_set_part(
+            matrix,
+            data_set_creation.SECOND_NN,
+            columns_to_extract,
+            window_length,
+            3,
+            3
+        )
+
+        # Assert
+        self.assertTrue(np.alltrue(matrix == expected_matrix))
+        self.assertTrue(np.alltrue(labels == expected_labels))
 
 if __name__ == '__main__':
     unittest.main()

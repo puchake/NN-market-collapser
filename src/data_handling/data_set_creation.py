@@ -39,6 +39,7 @@ def smooth_numeric_data(data_matrix, columns_to_smooth, smoothing_range):
 
     # Copy matrix fragment, which will be smoothed and pad it with edge values.
     smoothed_data = data_matrix[:, columns_to_smooth]
+    print(smoothed_data)
     smoothed_data = np.pad(
         smoothed_data,
         ((smoothing_range // 2, smoothing_range // 2), (0, 0)),
@@ -47,7 +48,7 @@ def smooth_numeric_data(data_matrix, columns_to_smooth, smoothing_range):
 
     # Smooth it.
     smoothed_data_copy = np.copy(smoothed_data)
-    for i in range(SMOOTHING_RANGE // 2):
+    for i in range(smoothing_range // 2):
         smoothed_data += np.roll(smoothed_data_copy, i + 1, 0)
         smoothed_data += np.roll(smoothed_data_copy, -(i + 1), 0)
     smoothed_data = np.divide(smoothed_data, smoothing_range)
@@ -81,31 +82,39 @@ def split_data_matrix(data_matrix, window_length, columns_to_extract):
     return split_matrix
 
 
-def get_data_set_part(company_data_matrix, destination):
+def get_data_set_part(
+        company_data_matrix, destination,
+        columns_to_extract, classification_column,
+        window_length, smoothing_range
+):
     """
     Turn company data matrix into fragment of first/second basic nn data set.
     :param company_data_matrix: matrix of collected company data
     :param destination: states whether data set will be used in
                                  first or second nn training
+    :param columns_to_extract: indices of extracted from matrix columns
+    :param classification_column: index of column used for classification
+    :param window_length: length of time window (nn input vector)
+    :param smoothing_range: performed in case of first nn destination
     :return: fragment of data set for this company (data and labels)
     """
 
     if destination == FIRST_NN:
         smooth_numeric_data(
-            company_data_matrix, COLUMNS_TO_EXTRACT, SMOOTHING_RANGE
+            company_data_matrix, columns_to_extract, smoothing_range
         )
 
     split_company_matrix = split_data_matrix(
-        company_data_matrix, WINDOW_LENGTH, COLUMNS_TO_EXTRACT
+        company_data_matrix, classification_column, columns_to_extract
     )
 
     # Find labels for each but last time window present in split matrix.
     # Last window is discarded, because there might not be enough data
     # to find label for it.
     labels = np.zeros([split_company_matrix.shape[0] - 1, NUMBER_OF_LABELS])
-    values_per_time_point = len(COLUMNS_TO_EXTRACT)
-    classification_column_index = COLUMNS_TO_EXTRACT.index(
-        CLASSIFICATION_COLUMN
+    values_per_time_point = len(columns_to_extract)
+    classification_column_index = columns_to_extract.index(
+        classification_column
     )
     for i in range(labels.shape[0]):
         window_last_value = split_company_matrix[
@@ -114,7 +123,7 @@ def get_data_set_part(company_data_matrix, destination):
 
         if destination == FIRST_NN:
             next_value_index = values_per_time_point * \
-                               ((SMOOTHING_RANGE // 2) * 2) + \
+                               ((smoothing_range // 2) * 2) + \
                                classification_column_index - 1
         else:
             next_value_index = classification_column_index - 1
@@ -128,13 +137,21 @@ def get_data_set_part(company_data_matrix, destination):
     return split_company_matrix[:-1], labels
 
 
-def create_data_set(data_matrix, destination):
+def create_data_set(
+        company_data_matrix, destination,
+        columns_to_extract, classification_column,
+        window_length, smoothing_range
+):
     """
     Transform data matrix into data set with labels prepared for first or
     second nn.
     :param data_matrix: data matrix to be turned into nn data set
     :param destination: describes destination of created data set (first
                         or second nn
+    :param columns_to_extract: indices of extracted from matrix columns
+    :param classification_column: index of column used for classification
+    :param window_length: length of time window (nn input vector)
+    :param smoothing_range: performed in case of first nn destination
     :return: created data set and its labels
     """
 
@@ -148,12 +165,18 @@ def create_data_set(data_matrix, destination):
             print(data_matrix[i, 0])
             company_rows_indices = [i]
             data_part, labels_part = get_data_set_part(
-                data_matrix[company_rows_indices], destination
+                data_matrix[company_rows_indices], destination,
+                columns_to_extract, classification_column,
+                window_length, smoothing_range
             )
+            print(data_part.shape)
             data_parts.append(data_part)
             labels_parts.append(labels_part)
 
 
 if __name__ == "__main__":
-    data_matrix = np.load("../../data/extracted/wiki_prices_data.npy")
-    create_data_set(data_matrix, FIRST_NN)
+    data_matrix = np.load(EXTRACTED_DATA_FILE_PATH)
+    create_data_set(
+        data_matrix, FIRST_NN, COLUMNS_TO_EXTRACT,
+        CLASSIFICATION_COLUMN, WINDOW_LENGTH, SMOOTHING_RANGE
+    )
