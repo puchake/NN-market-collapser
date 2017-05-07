@@ -1,7 +1,6 @@
 import csv
 import pickle
 import unittest
-from collections import namedtuple
 import numpy as np
 
 import data_handling.data_extraction as data_extraction
@@ -31,7 +30,6 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
         csv_file = open(data_extraction.RAW_DATA_FILE_PATH)
         csv_reader = csv.reader(csv_file)
         data_matrix = np.load(data_extraction.EXTRACTED_DATA_FILE_PATH)
-        CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
         # Skip header row.
@@ -40,7 +38,7 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
         # Act
         for row, i in zip(csv_reader, range(data_matrix.shape[0])):
             results[i] = True
-            csv_row = CsvRow(*row)
+            csv_row = tuple(row)
             for column_index, j in zip(
                 data_extraction.COLUMNS_TO_EXTRACT,
                 range(1, data_matrix.shape[1])
@@ -62,7 +60,6 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
         companies_dict = pickle.load(
             open(data_extraction.COMPANIES_DICT_FILE_PATH, "rb")
         )
-        CsvRow = namedtuple("CsvRow", data_extraction.CSV_COLUMNS)
         results = np.empty([data_matrix.shape[0], ], dtype=np.bool)
 
         # Skip header row.
@@ -70,9 +67,10 @@ class BasicRnnDataExtractionTestCase(unittest.TestCase):
 
         # Act
         for row, i in zip(csv_reader, range(data_matrix.shape[0])):
-            csv_row = CsvRow(*row)
-            results[i] = companies_dict[csv_row.ticker] == \
-                         int(data_matrix[i, 0])
+            csv_row = tuple(row)
+            results[i] = companies_dict[
+                             csv_row[data_extraction.TICKER_COLUMN]
+                         ] == data_matrix[i, 0]
 
         # Assert
         self.assertTrue(np.alltrue(results))

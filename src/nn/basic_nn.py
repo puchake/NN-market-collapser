@@ -4,11 +4,11 @@ import os
 
 
 # Global index of performed network run.
-RUN_INDEX = 1
+RUN_INDEX = 32
 
 # Index of input data set, which is used for network
-# (basic_nn_set_1 or basic_nn_set_2).
-SET_INDEX = 1
+# (basic_nn_set_0, 1 or 2).
+SET_INDEX = 0
 
 # Available modes of the network. If it is fresh run (start), continuation of
 # previously started training from the last checkpoint (continue) or usage run
@@ -39,16 +39,19 @@ LOGS_OVERRIDE_ERROR = "Attempted to override existing logs for run {}."
 # Maximum checkpoints to keep. This value will probably be never exceeded.
 MAX_CHECKPOINTS = 1000
 
+TRAIN_BATCH_SIZE = 50000
 NO_DROPOUT = 0.0
-IN_SIZE = 400
+IN_SIZE = 75
 NUM_OF_LABELS = 2
-LAYER_SIZES = [256, 256, 128, 128, 2]
-DROPOUT = 0.5
-MAX_ITERATIONS = 5000
+LAYER_SIZES = [1024, 512, 256, 128, 128, 2]
+DROPOUT = 0.25
+MAX_ITERATIONS = 1000
 VALIDATION_INTERVAL = 10
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.001
+LEARNING_RATE_DECAY = 0.8
+DECAY_INTERVAL = 100
 CHECKPOINT_INTERVAL = 10
-
+danę=10
 
 def setup_training_environment(run_index, set_index, mode):
     """
@@ -149,7 +152,7 @@ def create_fully_connected_layer(
     if is_output_layer:
         return tf.nn.dropout(out, 1 - dropout)
     else:
-        return tf.nn.dropout(tf.nn.relu(out), 1 - dropout)
+        return tf.nn.dropout(tf.maximum(out, out * 0.1), 1 - dropout)
 
 
 def create_graph(
@@ -253,7 +256,7 @@ def perform_usage_run(run_index, data_set_path, out_path):
     np.save(out_path, calculated_out)
 
 
-def train_network(run_index, set_index, mode):
+def train_network(run_index, set_index, mode, learning_rate):
     """
     Start/continue basic nn training for given run index and with data set
     described by set index.
@@ -261,6 +264,7 @@ def train_network(run_index, set_index, mode):
     :param run_index:
     :param set_index:
     :param mode:
+    :param learning_rate:
     :return:
     """
 
@@ -311,13 +315,19 @@ def train_network(run_index, set_index, mode):
 
     for i in range(MAX_ITERATIONS):
 
+        # Sample train data.
+        batch_indices = np.random.permutation(train_data.shape[0])
+        batch_indices = batch_indices[:TRAIN_BATCH_SIZE]
+        batch_data = train_data[batch_indices]
+        batch_labels = train_labels[batch_indices]
+
         # Perform normal train run.
         summary, _ = session.run(
             [merged_summary, train],
             feed_dict={
-                in_placeholder: train_data,
-                labels_placeholder: train_labels,
-                learning_rate_placeholder: LEARNING_RATE,
+                in_placeholder: batch_data,
+                labels_placeholder: batch_labels,
+                learning_rate_placeholder: learning_rate,
                 dropout_placeholder: DROPOUT
             }
         )
@@ -353,9 +363,30 @@ def train_network(run_index, set_index, mode):
                 )
             )
 
+        # Learning rate decay.
+        if i % DECAY_INTERVAL == 0 and i != 0:
+            learning_rate *= LEARNING_RATE_DECAY
+
+    # Test run.
+    saver.save(session, checkpoints_dir + "/model_checkpoint_last")
+    saver.restore(session, best_model_dir + "/best_model")
+    loss_value, accuracy_value = session.run(
+        [loss, accuracy],
+        feed_dict={
+            in_placeholder: test_data,
+            labels_placeholder: test_labels,
+            dropout_placeholder: NO_DROPOUT
+        }
+    )
+    print(
+        "Final Loss: {}\n\tFinal Accuracy: {}\n".format(
+            loss_value, accuracy_value
+        )
+    )
+
 
 if __name__ == "__main__":
     if MODE == USE_MODE:
         perform_usage_run(RUN_INDEX, USAGE_DATA_SET_PATH, USAGE_OUT_PATH)
     else:
-        train_network(RUN_INDEX, SET_INDEX, MODE)
+        train_network(RUN_INDEX, SET_INDEX, MODE, LEARNING_RATE)
