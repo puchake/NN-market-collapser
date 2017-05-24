@@ -1,67 +1,9 @@
-import os
-
 import numpy as np
 import src.nn.config.NnConfig as config
+import src.nn.config.NnConst as const
 import tensorflow as tf
 
-from src.nn.config import Const
-
-
-def setup_training_environment(run_index, set_index, mode):
-    """
-    Creates directories necessary for neural network's run. If directories
-    already exist, it raises an ValueError to stop user from overriding
-    existing logs and models.
-
-    :param run_index: index of the neural network's run
-    :param set_index: index of the used data set
-    :param mode: current run's mode
-    :return: set of paths used by basic nn: data set, train logs,
-             validation logs, checkpoints and best model directories
-    """
-
-    data_set_dir = Const.TRAINING_DATA_SET_DIR_PATTERN.format(set_index)
-    train_logs_dir = Const.TRAIN_LOGS_DIR_PATTERN.format(run_index)
-    validation_logs_dir = Const.VALIDATION_LOGS_DIR_PATTERN.format(run_index)
-    checkpoints_dir = Const.CHECKPOINTS_DIR_PATTERN.format(run_index)
-    best_model_dir = Const.BEST_MODEL_DIR_PATTERN.format(run_index)
-
-    dirs_to_check = [
-        train_logs_dir, validation_logs_dir, checkpoints_dir, best_model_dir
-    ]
-
-    for dir_path in dirs_to_check:
-
-        # If one of the log directories already exists raise an error.
-        # Else create that directory.
-        if os.path.exists(dir_path):
-            if mode == Const.START_MODE:
-                raise ValueError(Const.LOGS_OVERRIDE_ERROR.format(run_index))
-        else:
-            os.makedirs(dir_path)
-
-    return data_set_dir, train_logs_dir, validation_logs_dir, \
-           checkpoints_dir, best_model_dir
-
-
-def load_training_data_set(data_set_dir):
-    """
-    Load data, which will be used by nn in training, from a specified folder.
-
-    :param data_set_dir: path to folder which contains training data
-    :return: train, validation and test data and labels
-    """
-
-    train_data = np.load(data_set_dir + "train_data.npy")
-    train_labels = np.load(data_set_dir + "train_labels.npy")
-    validation_data = np.load(data_set_dir + "validation_data.npy")
-    validation_labels = np.load(data_set_dir + "validation_labels.npy")
-    test_data = np.load(data_set_dir + "test_data.npy")
-    test_labels = np.load(data_set_dir + "test_labels.npy")
-
-    return train_data, train_labels, \
-           validation_data, validation_labels, \
-           test_data, test_labels
+from src.nn.config import setup_training_environment, load_training_data_set
 
 
 def create_fully_connected_layer(
@@ -173,7 +115,7 @@ def perform_usage_run(run_index, data_set_path, out_path):
     """
 
     # Fill in usage model path pattern.
-    usage_model_path = Const.USAGE_MODEL_PATH_PATTERN.format(run_index)
+    usage_model_path = const.USAGE_MODEL_PATH_PATTERN.format(run_index)
 
     # Load data.
     data = np.load(data_set_path)
@@ -225,7 +167,7 @@ def train_network(run_index, set_index, mode, learning_rate):
     # Setup training environment.
     data_set_dir, train_logs_dir, validation_logs_dir, \
     checkpoints_dir, best_model_dir = setup_training_environment(
-        run_index, set_index, mode
+        const, run_index, set_index, mode
     )
 
     train_data, train_labels, \
@@ -339,7 +281,7 @@ def train_network(run_index, set_index, mode, learning_rate):
 
 
 if __name__ == "__main__":
-    if Const.MODE == Const.USE_MODE:
-        perform_usage_run(Const.RUN_INDEX, Const.USAGE_DATA_SET_PATH, Const.USAGE_OUT_PATH)
+    if const.MODE == const.USE_MODE:
+        perform_usage_run(const.RUN_INDEX, const.USAGE_DATA_SET_PATH, const.USAGE_OUT_PATH)
     else:
-        train_network(Const.RUN_INDEX, Const.SET_INDEX, Const.MODE, config.LEARNING_RATE)
+        train_network(const.RUN_INDEX, const.SET_INDEX, const.MODE, config.LEARNING_RATE)
