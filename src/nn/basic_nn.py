@@ -1,113 +1,9 @@
-import tensorflow as tf
 import numpy as np
-import os
+import tensorflow as tf
 
-
-# Global index of performed network run.
-RUN_INDEX = 33
-
-# Index of input data set, which is used for network
-# (basic_nn_set_0, 1, 2 or 3).
-SET_INDEX = 3
-
-# Available modes of the network. If it is fresh run (start), continuation of
-# previously started training from the last checkpoint (continue) or usage run
-# (use).
-START_MODE = "start"
-CONTINUE_MODE = "continue"
-USE_MODE = "use"
-
-# Mode of currently performed run.
-MODE = START_MODE
-
-# Network's training paths patterns.
-TRAINING_DATA_SET_DIR_PATTERN = "../../data/set/basic_nn_set_{}/"
-TRAIN_LOGS_DIR_PATTERN = "../../data/logs/basic_nn/run_{}/train"
-VALIDATION_LOGS_DIR_PATTERN = "../../data/logs/basic_nn/run_{}/validation"
-CHECKPOINTS_DIR_PATTERN = "../../data/logs/basic_nn/run_{}/checkpoints"
-BEST_MODEL_DIR_PATTERN = "../../data/logs/basic_nn/run_{}/best_model"
-
-# Paths used in usage runs.
-USAGE_DATA_SET_PATH = "../../data/set/usage/data.npy"
-USAGE_OUT_PATH = "../../data/out/out"
-USAGE_MODEL_PATH_PATTERN = "../../data/logs/basic_nn/run_{}/best_model/" \
-                           "best_model"
-
-# Error message for logs override attempt.
-LOGS_OVERRIDE_ERROR = "Attempted to override existing logs for run {}."
-
-# Maximum checkpoints to keep. This value will probably be never exceeded.
-MAX_CHECKPOINTS = 1000
-
-TRAIN_BATCH_SIZE = 50000
-NO_DROPOUT = 0.0
-IN_SIZE = 75
-NUM_OF_LABELS = 2
-LAYER_SIZES = [1024, 512, 256, 128, 128, 2]
-DROPOUT = 0.25
-MAX_ITERATIONS = 1000
-VALIDATION_INTERVAL = 10
-LEARNING_RATE = 0.001
-LEARNING_RATE_DECAY = 0.8
-DECAY_INTERVAL = 100
-CHECKPOINT_INTERVAL = 10
-
-
-def setup_training_environment(run_index, set_index, mode):
-    """
-    Creates directories necessary for neural network's run. If directories
-    already exist, it raises an ValueError to stop user from overriding
-    existing logs and models.
-
-    :param run_index: index of the neural network's run
-    :param set_index: index of the used data set
-    :param mode: current run's mode
-    :return: set of paths used by basic nn: data set, train logs,
-             validation logs, checkpoints and best model directories
-    """
-
-    data_set_dir = TRAINING_DATA_SET_DIR_PATTERN.format(set_index)
-    train_logs_dir = TRAIN_LOGS_DIR_PATTERN.format(run_index)
-    validation_logs_dir = VALIDATION_LOGS_DIR_PATTERN.format(run_index)
-    checkpoints_dir = CHECKPOINTS_DIR_PATTERN.format(run_index)
-    best_model_dir = BEST_MODEL_DIR_PATTERN.format(run_index)
-
-    dirs_to_check = [
-        train_logs_dir, validation_logs_dir, checkpoints_dir, best_model_dir
-    ]
-
-    for dir_path in dirs_to_check:
-
-        # If one of the log directories already exists raise an error.
-        # Else create that directory.
-        if os.path.exists(dir_path):
-            if mode == START_MODE:
-                raise ValueError(LOGS_OVERRIDE_ERROR.format(run_index))
-        else:
-            os.makedirs(dir_path)
-
-    return data_set_dir, train_logs_dir, validation_logs_dir, \
-           checkpoints_dir, best_model_dir
-
-
-def load_training_data_set(data_set_dir):
-    """
-    Load data, which will be used by nn in training, from a specified folder.
-
-    :param data_set_dir: path to folder which contains training data
-    :return: train, validation and test data and labels
-    """
-
-    train_data = np.load(data_set_dir + "train_data.npy")
-    train_labels = np.load(data_set_dir + "train_labels.npy")
-    validation_data = np.load(data_set_dir + "validation_data.npy")
-    validation_labels = np.load(data_set_dir + "validation_labels.npy")
-    test_data = np.load(data_set_dir + "test_data.npy")
-    test_labels = np.load(data_set_dir + "test_labels.npy")
-
-    return train_data, train_labels, \
-           validation_data, validation_labels, \
-           test_data, test_labels
+from src.nn.config import NnConfig as config
+from src.nn.config import NnConst as const
+from src.nn.config import setup_training_environment, load_training_data_set
 
 
 def create_fully_connected_layer(
@@ -219,22 +115,22 @@ def perform_usage_run(run_index, data_set_path, out_path):
     """
 
     # Fill in usage model path pattern.
-    usage_model_path = USAGE_MODEL_PATH_PATTERN.format(run_index)
+    usage_model_path = const.USAGE_MODEL_PATH_PATTERN.format(run_index)
 
     # Load data.
     data = np.load(data_set_path)
 
     # Create network's placeholders.
-    in_placeholder = tf.placeholder(tf.float32, shape=[None, IN_SIZE])
+    in_placeholder = tf.placeholder(tf.float32, shape=[None, config.IN_SIZE])
     labels_placeholder = tf.placeholder(
-        tf.float32, shape=[None, NUM_OF_LABELS]
+        tf.float32, shape=[None, config.NUM_OF_LABELS]
     )
     learning_rate_placeholder = tf.placeholder(tf.float32, shape=[])
     dropout_placeholder = tf.placeholder(tf.float32, shape=[])
 
     # Create network's graph.
     out, _, _, _ = create_graph(
-        in_placeholder, IN_SIZE, LAYER_SIZES, labels_placeholder,
+        in_placeholder, config.IN_SIZE, config.LAYER_SIZES, labels_placeholder,
         learning_rate_placeholder, dropout_placeholder
     )
 
@@ -249,7 +145,7 @@ def perform_usage_run(run_index, data_set_path, out_path):
     # Perform one forward pass.
     calculated_out = session.run(
         [out],
-        feed_dict={in_placeholder: data, dropout_placeholder: NO_DROPOUT}
+        feed_dict={in_placeholder: data, dropout_placeholder: config.NO_DROPOUT}
     )
 
     # Save results to file and exit.
@@ -271,7 +167,7 @@ def train_network(run_index, set_index, mode, learning_rate):
     # Setup training environment.
     data_set_dir, train_logs_dir, validation_logs_dir, \
     checkpoints_dir, best_model_dir = setup_training_environment(
-        run_index, set_index, mode
+        const, run_index, set_index, mode
     )
 
     train_data, train_labels, \
@@ -279,16 +175,16 @@ def train_network(run_index, set_index, mode, learning_rate):
     test_data, test_labels = load_training_data_set(data_set_dir)
 
     # Create network's placeholders.
-    in_placeholder = tf.placeholder(tf.float32, shape=[None, IN_SIZE])
+    in_placeholder = tf.placeholder(tf.float32, shape=[None, config.IN_SIZE])
     labels_placeholder = tf.placeholder(
-        tf.float32, shape=[None, NUM_OF_LABELS]
+        tf.float32, shape=[None, config.NUM_OF_LABELS]
     )
     learning_rate_placeholder = tf.placeholder(tf.float32, shape=[])
     dropout_placeholder = tf.placeholder(tf.float32, shape=[])
 
     # Create network's graph.
     out, loss, train, accuracy = create_graph(
-        in_placeholder, IN_SIZE, LAYER_SIZES, labels_placeholder,
+        in_placeholder, config.IN_SIZE, config.LAYER_SIZES, labels_placeholder,
         learning_rate_placeholder, dropout_placeholder
     )
 
@@ -305,19 +201,18 @@ def train_network(run_index, set_index, mode, learning_rate):
 
     lowest_loss = None
 
-    if MODE == CONTINUE_MODE:
-
+    if config.MODE == config.CONTINUE_MODE:
         # Might be not needed.
         pass
 
     # Create model saver which will keep all checkpoints.
-    saver = tf.train.Saver(max_to_keep=MAX_CHECKPOINTS)
+    saver = tf.train.Saver(max_to_keep=config.MAX_CHECKPOINTS)
 
-    for i in range(MAX_ITERATIONS):
+    for i in range(config.MAX_ITERATIONS):
 
         # Sample train data.
         batch_indices = np.random.permutation(train_data.shape[0])
-        batch_indices = batch_indices[:TRAIN_BATCH_SIZE]
+        batch_indices = batch_indices[:config.TRAIN_BATCH_SIZE]
         batch_data = train_data[batch_indices]
         batch_labels = train_labels[batch_indices]
 
@@ -328,24 +223,24 @@ def train_network(run_index, set_index, mode, learning_rate):
                 in_placeholder: batch_data,
                 labels_placeholder: batch_labels,
                 learning_rate_placeholder: learning_rate,
-                dropout_placeholder: DROPOUT
+                dropout_placeholder: config.DROPOUT
             }
         )
 
         train_logger.add_summary(summary, i)
 
         # Save checkpoint for model.
-        if i % CHECKPOINT_INTERVAL == 0:
+        if i % config.CHECKPOINT_INTERVAL == 0:
             saver.save(session, checkpoints_dir + "/model_checkpoint", i)
 
         # Validation run.
-        if i % VALIDATION_INTERVAL == 0:
+        if i % config.VALIDATION_INTERVAL == 0:
             summary, loss_value, accuracy_value = session.run(
                 [merged_summary, loss, accuracy],
                 feed_dict={
                     in_placeholder: validation_data,
                     labels_placeholder: validation_labels,
-                    dropout_placeholder: NO_DROPOUT
+                    dropout_placeholder: config.NO_DROPOUT
                 }
             )
 
@@ -364,8 +259,8 @@ def train_network(run_index, set_index, mode, learning_rate):
             )
 
         # Learning rate decay.
-        if i % DECAY_INTERVAL == 0 and i != 0:
-            learning_rate *= LEARNING_RATE_DECAY
+        if i % config.DECAY_INTERVAL == 0 and i != 0:
+            learning_rate *= config.LEARNING_RATE_DECAY
 
     # Test run.
     saver.save(session, checkpoints_dir + "/model_checkpoint_last")
@@ -375,7 +270,7 @@ def train_network(run_index, set_index, mode, learning_rate):
         feed_dict={
             in_placeholder: test_data,
             labels_placeholder: test_labels,
-            dropout_placeholder: NO_DROPOUT
+            dropout_placeholder: config.NO_DROPOUT
         }
     )
     print(
@@ -385,8 +280,12 @@ def train_network(run_index, set_index, mode, learning_rate):
     )
 
 
-if __name__ == "__main__":
-    if MODE == USE_MODE:
-        perform_usage_run(RUN_INDEX, USAGE_DATA_SET_PATH, USAGE_OUT_PATH)
+def main(MODE):
+    if MODE == const.USE_MODE:
+        perform_usage_run(const.RUN_INDEX, const.USAGE_DATA_SET_PATH, const.USAGE_OUT_PATH)
     else:
-        train_network(RUN_INDEX, SET_INDEX, MODE, LEARNING_RATE)
+        train_network(const.RUN_INDEX, const.SET_INDEX, const.MODE, config.LEARNING_RATE)
+
+
+if __name__ == "__main__":
+    main(const.USE_MODE)
