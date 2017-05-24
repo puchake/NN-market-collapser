@@ -1,8 +1,8 @@
 import numpy as np
-import src.nn.config.NnConfig as config
-import src.nn.config.NnConst as const
 import tensorflow as tf
 
+from src.nn.config import NnConfig as config
+from src.nn.config import NnConst as const
 from src.nn.config import setup_training_environment, load_training_data_set
 
 
@@ -280,8 +280,12 @@ def train_network(run_index, set_index, mode, learning_rate):
     )
 
 
-if __name__ == "__main__":
-    if const.MODE == const.USE_MODE:
+def main(MODE):
+    if MODE == const.USE_MODE:
         perform_usage_run(const.RUN_INDEX, const.USAGE_DATA_SET_PATH, const.USAGE_OUT_PATH)
     else:
         train_network(const.RUN_INDEX, const.SET_INDEX, const.MODE, config.LEARNING_RATE)
+
+
+if __name__ == "__main__":
+    main(const.USE_MODE)
