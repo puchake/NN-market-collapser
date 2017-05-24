@@ -145,7 +145,9 @@ def perform_usage_run(run_index, data_set_path, out_path):
     # Perform one forward pass.
     calculated_out = session.run(
         [out],
-        feed_dict={in_placeholder: data, dropout_placeholder: config.NO_DROPOUT}
+        feed_dict={
+            in_placeholder: data, dropout_placeholder: config.NO_DROPOUT
+        }
     )
 
     # Save results to file and exit.
@@ -281,10 +283,19 @@ def train_network(run_index, set_index, mode, learning_rate):
 
 
 def main(MODE):
+    """
+    Main function of this script.
+    :param MODE: run mode
+    :return: -
+    """
     if MODE == const.USE_MODE:
-        perform_usage_run(const.RUN_INDEX, const.USAGE_DATA_SET_PATH, const.USAGE_OUT_PATH)
+        perform_usage_run(
+            const.RUN_INDEX, const.USAGE_DATA_SET_PATH, const.USAGE_OUT_PATH
+        )
     else:
-        train_network(const.RUN_INDEX, const.SET_INDEX, const.MODE, config.LEARNING_RATE)
+        train_network(
+            const.RUN_INDEX, const.SET_INDEX, const.MODE, config.LEARNING_RATE
+        )
 
 
 if __name__ == "__main__":
