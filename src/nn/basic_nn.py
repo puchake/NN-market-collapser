@@ -4,11 +4,11 @@ import os
 
 
 # Global index of performed network run.
-RUN_INDEX = 32
+RUN_INDEX = 33
 
 # Index of input data set, which is used for network
-# (basic_nn_set_0, 1 or 2).
-SET_INDEX = 0
+# (basic_nn_set_0, 1, 2 or 3).
+SET_INDEX = 3
 
 # Available modes of the network. If it is fresh run (start), continuation of
 # previously started training from the last checkpoint (continue) or usage run
@@ -51,7 +51,7 @@ LEARNING_RATE = 0.001
 LEARNING_RATE_DECAY = 0.8
 DECAY_INTERVAL = 100
 CHECKPOINT_INTERVAL = 10
-danę=10
+
 
 def setup_training_environment(run_index, set_index, mode):
     """
