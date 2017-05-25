@@ -64,7 +64,7 @@ def create_train_graph(
                        num_layers x 2 (for c, h) x batch_size x in_size
     :param labels: placeholder for labels
     :param learning_rate: scalar placeholder for learning rate
-    :return: train, loss and next_state nodes
+    :return: train, loss, accuracy, predictions and next_state nodes
     """
     # Indices of c and h states.
     c_i = 0
@@ -89,6 +89,13 @@ def create_train_graph(
             labels=tf.reshape(labels, [-1, num_classes])
         )
     )
+    predictions = tf.argmax(final_outs, axis=1)
+    print(predictions.shape)
+    correct = tf.argmax(tf.reshape(labels, [-1, num_classes]), axis=1)
+    print(correct.shape)
+    accuracy = tf.reduce_mean(
+        tf.cast(tf.equal(predictions, correct), tf.float32)
+    )
     trainer = tf.train.AdagradOptimizer(learning_rate)
     # create training node with gradient clipping applied to it.
     grads = trainer.compute_gradients(loss)
@@ -97,7 +104,7 @@ def create_train_graph(
         for grad, var in grads
     ]
     train = trainer.apply_gradients(clipped_grads)
-    return train, loss, state
+    return train, loss, accuracy, predictions, state
 
 
 def load_set(set_dir_path):
@@ -153,7 +160,7 @@ def main():
         HIDDEN_SIZE, NUM_CLASSES, NUM_LAYERS
     )
     # Create training graph.
-    train, loss, next_state = create_train_graph(
+    train, loss, accuracy, predictions, next_state = create_train_graph(
         cell, out_weights, out_biases, NUM_LAYERS, NUM_CLASSES, ROLL_OUT,
         in_data, previous_state, labels, learning_rate
     )
@@ -215,8 +222,8 @@ def main():
                     companies_indices[k]
                 ][j + current_indices[k]]
         # Perform train run.
-        _, loss_value, next_state_tuple = session.run(
-            [train, loss, next_state],
+        _, loss_value, accuracy_value, next_state_tuple = session.run(
+            [train, loss, accuracy, next_state],
             feed_dict={
                 in_data: data_batch,
                 previous_state: current_state,
@@ -230,8 +237,9 @@ def main():
         # Update smooth loss and print current state.
         smooth_loss = keep_multi * smooth_loss + (1 - keep_multi) * loss_value
         print(
-            "Iteration {}:\n\tSmooth loss: {}\n\tLoss: {}".format(
-                i, smooth_loss, loss_value
+            ("Iteration {}:\n\tSmooth loss: {}\n\tLoss: {}" +
+             "\n\tAccuracy: {}").format(
+                i, smooth_loss, loss_value, accuracy_value
             )
         )
 
