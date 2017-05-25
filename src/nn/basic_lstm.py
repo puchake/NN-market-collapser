@@ -254,6 +254,41 @@ def main():
     test_current_state = np.zeros(
         [NUM_LAYERS, num_states, TEST_BATCH_SIZE, HIDDEN_SIZE]
     )
+    # Create the summary and train, and validation logs writers.
+    # Create also special placeholders for smooth loss etc.
+    smooth_loss_in = tf.placeholder(dtype=tf.float32, shape=[])
+    smooth_accuracy_in = tf.placeholder(dtype=tf.float32, shape=[])
+    loss_in = tf.placeholder(dtype=tf.float32, shape=[])
+    accuracy_in = tf.placeholder(dtype=tf.float32, shape=[])
+    mean_loss_in = tf.placeholder(dtype=tf.float32, shape=[])
+    mean_accuracy_in = tf.placeholder(dtype=tf.float32, shape=[])
+    train_logs_dir_path = "../../data/rnn_log/train"
+    validation_logs_dir_path = "../../data/rnn_log/validation"
+    # Create train summaries.
+    loss_summary = tf.summary.scalar("loss", loss_in)
+    accuracy_summary = tf.summary.scalar("accuracy", accuracy_in)
+    smooth_loss_in_summary = tf.summary.scalar(
+        "smooth_loss", smooth_loss_in
+    )
+    smooth_accuracy_summary = tf.summary.scalar(
+        "smooth_accuracy", smooth_accuracy_in
+    )
+    train_merged_summary = tf.summary.merge(
+        [
+            loss_summary, accuracy_summary,
+            smooth_loss_in_summary, smooth_accuracy_summary
+        ]
+    )
+    # Create validation summaries.
+    mean_loss_summary = tf.summary.scalar("mean_loss", mean_loss_in)
+    mean_accuracy_summary = tf.summary.scalar(
+        "mean_accuracy", mean_accuracy_in
+    )
+    validation_merged_summary = tf.summary.merge(
+        [mean_loss_summary, mean_accuracy_summary]
+    )
+    train_logger = tf.summary.FileWriter(train_logs_dir_path)
+    validation_logger = tf.summary.FileWriter(validation_logs_dir_path)
     # Create and initialize session.
     session = tf.Session()
     session.run(tf.global_variables_initializer())
@@ -266,6 +301,7 @@ def main():
     train_current_indices = np.zeros([TRAIN_BATCH_SIZE], dtype=np.int32)
     # Initialize starting loss.
     smooth_loss = -np.log(1.0 / NUM_CLASSES)
+    smooth_accuracy = 1.0 / NUM_CLASSES
     keep_multi = 0.99
     # Container for one data batch of either train, validation or test run.
     batch_size_limit = np.max(
@@ -273,8 +309,6 @@ def main():
     )
     data_batch = np.zeros([ROLL_OUT, batch_size_limit, IN_SIZE])
     labels_batch = np.zeros([ROLL_OUT, batch_size_limit, NUM_CLASSES])
-    # Minimal pause to handle plot events.
-    plot_pause = 0.05
     for i in range(MAX_ITERATIONS):
         # Keep selecting companies until all of them in the companies indices
         # set have sufficient data to perform one train pass.
@@ -332,12 +366,25 @@ def main():
             train_current_state[j] = np.array(next_state_tuple[j])
         # Update smooth loss and print current state.
         smooth_loss = keep_multi * smooth_loss + (1 - keep_multi) * loss_value
+        smooth_accuracy = keep_multi * smooth_accuracy + \
+                          (1 - keep_multi) * accuracy_value
         print(
             ("Iteration {}:\n\tSmooth loss: {}\n\tLoss: {}" +
-             "\n\tAccuracy: {}").format(
-                i, smooth_loss, loss_value, accuracy_value
+             "\n\tSmooth accuracy: {}\n\tAccuracy: {}").format(
+                i, smooth_loss, loss_value, smooth_accuracy, accuracy_value
             )
         )
+        # Save summary for this step to log.
+        summary, = session.run(
+            [train_merged_summary],
+            feed_dict={
+                smooth_loss_in: smooth_loss,
+                smooth_accuracy_in: smooth_accuracy,
+                loss_in: loss_value,
+                accuracy_in: accuracy_value
+            }
+        )
+        train_logger.add_summary(summary, i)
         # Perform validation with set interval.
         if i % VALIDATION_INTERVAL == 0:
             print("Iteration {} - Validation:".format(i))
@@ -412,6 +459,15 @@ def main():
                     np.mean(losses), np.mean(accuracies)
                 )
             )
+            # Save summary for this step to log.
+            summary, = session.run(
+                [validation_merged_summary],
+                feed_dict={
+                    mean_loss_in: np.mean(losses),
+                    mean_accuracy_in: np.mean(accuracies)
+                }
+            )
+            validation_logger.add_summary(summary, i)
 
 
 if __name__ == "__main__":
