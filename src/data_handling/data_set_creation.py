@@ -6,7 +6,7 @@ EXTRACTED_DATA_FILE_PATH = "../../data/extracted/wiki_prices_data.npy"
 OUT_DIRECTORY_PATTERN = "../../data/set/basic_nn_set_{}/"
 
 # Range of smoothing for company data.
-SMOOTHING_RANGE = 5
+SMOOTHING_RANGE = 7
 
 # Numeric columns of companies data matrix which will be extracted, smoothed
 # and index of column used for classification.
@@ -15,7 +15,7 @@ COLUMNS_TO_SMOOTH = [1, 2, 3, 4]
 CLASSIFICATION_COLUMN = 4
 
 # Length of time window present in one input vector for basic nn.
-WINDOW_LENGTH = 30
+WINDOW_LENGTH = 15
 
 # Constants for rise and decline classification.
 NUMBER_OF_LABELS = 2
@@ -26,7 +26,8 @@ DECLINE = 0
 FIRST_SET = 0
 SECOND_SET = 1
 THIRD_SET = 2
-CURRENT_SET = FIRST_SET
+FOURTH_SET = 3
+CURRENT_SET = FOURTH_SET
 
 # Sizes of test, validation and train set parts in fractions of whole set.
 TRAIN = 0.70
@@ -144,7 +145,7 @@ def find_time_window_label(
     ]
 
     # Find value in next time window which will determine the label.
-    if destination == FIRST_SET:
+    if destination == FIRST_SET or destination == FOURTH_SET:
         next_value_index = values_per_time_point * \
                            ((smoothing_range // 2) * 2) + \
                            classification_column_index
@@ -188,7 +189,7 @@ def get_data_set_part(
     """
 
     # Transform company data matrix.
-    if destination == FIRST_SET:
+    if destination == FIRST_SET or destination == FOURTH_SET:
         smooth_numeric_data(
             company_data_matrix, columns_to_smooth, smoothing_range
         )
@@ -331,5 +332,3 @@ if __name__ == "__main__":
     np.save(validation_labels_path, validation_labels)
     np.save(test_data_path, test_data)
     np.save(test_labels_path, test_labels)
-
-    print(train_data.shape)

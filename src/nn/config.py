@@ -6,15 +6,15 @@ import tensorflow as tf
 
 class NnConst(object):
     # Global index of performed network run.
-    RUN_INDEX = 32
+    RUN_INDEX = 33
 
     # Index of input data set, which is used for network
-    # (basic_nn_set_0, 1 or 2).
+    # (basic_nn_set_0, 1, 2 or 3).
     SET_INDEX = 0
 
-    # Available modes of the network. If it is fresh run (start), continuation of
-    # previously started training from the last checkpoint (continue) or usage run
-    # (use).
+    # Available modes of the network. If it is fresh run (start), continuation
+    # of previously started training from the last checkpoint (continue) or
+    # usage run (use).
     START_MODE = "start"
     CONTINUE_MODE = "continue"
     USE_MODE = "use"
@@ -44,10 +44,10 @@ class NnConst(object):
 
 class LstmConst(object):
     # Global index of performed network run.
-    RUN_INDEX = 32
+    RUN_INDEX = 33
 
     # Index of input data set, which is used for network
-    # (basic_nn_set_0, 1 or 2).
+    # (basic_nn_set_0, 1, 2 or 3).
     SET_INDEX = 0
 
     # Available modes of the network. If it is fresh run (start), continuation of
