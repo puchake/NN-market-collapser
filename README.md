@@ -1,6 +1,6 @@
 # market-teller
 
-This project is an attempt to create AI capable of predicting stock prices. We (authors) are only beginners in the field of machine learning, so this isn't and is not going to be anything capable of breaking the market. It's rather a fun and practical way to learn more about the neural networks.
+This project is an attempt to create AI capable of predicting stock prices with recurrent neural networks.
 
 ## Overview of the model
 
